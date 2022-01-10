@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading;
 
 namespace Andraste.Host.Logging
@@ -69,13 +70,18 @@ namespace Andraste.Host.Logging
 
         private void Read()
         {
-            FileStream stream = File.Open(FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            while (!File.Exists(FilePath))
+            {
+                Thread.Sleep(1000); // Wait for the file to be created (especially the error.log)
+            }
+            
+            var stream = File.Open(FilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             if (_offset > 0)
             {
                 stream.Seek(_offset, SeekOrigin.Begin);
             }
 
-            using (StreamReader reader = new StreamReader(stream))
+            using (var reader = new StreamReader(stream))
             {
                 string? line;
                 while ((line = reader.ReadLine()) != null)
