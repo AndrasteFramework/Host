@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using EasyHook;
 
 namespace Andraste.Host
@@ -22,6 +23,16 @@ namespace Andraste.Host
         /// <exception cref="Exception">Various Exceptions may be thrown if the application could not be started or the injection failed</exception>
         public virtual Process? StartApplication(string applicationPath, string commandLine, string modFrameworkPath, params object[] args)
         {
+            if (!File.Exists(applicationPath))
+            {
+                throw new ArgumentException("Application file does not exist", nameof(applicationPath));
+            }
+
+            if (!File.Exists(modFrameworkPath))
+            {
+                throw new ArgumentException("Mod Framework file does not exist", nameof(modFrameworkPath));
+            }
+            
             Inject(applicationPath, commandLine, 0, modFrameworkPath,
                 modFrameworkPath, out int pid, args);
 
