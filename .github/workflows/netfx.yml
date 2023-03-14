@@ -22,9 +22,9 @@ jobs:
       run: msbuild Andraste.Host.csproj /p:Configuration=Release
  
     - name: Upload Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: HostDLL
         path: |
-          bin\Release\Andraste.Host.dll
-          bin\Release\Andraste.Host.pdb
+          bin\Release\netstandard2.0\Andraste.Host.dll
+          bin\Release\netstandard2.0\Andraste.Host.pdb
