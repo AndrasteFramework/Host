@@ -28,3 +28,4 @@ jobs:
         path: |
           bin\Release\netstandard2.0\Andraste.Host.dll
           bin\Release\netstandard2.0\Andraste.Host.pdb
+          bin\Release\Andraste.Host.*.nupkg
