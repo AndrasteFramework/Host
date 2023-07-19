@@ -46,6 +46,16 @@ namespace Andraste.Host
             }
         }
 
+        public virtual void AttachToApplication(Process process, string modFrameworkPath, params object[] args)
+        {
+            if (!File.Exists(modFrameworkPath))
+            {
+                throw new ArgumentException("Mod Framework file does not exist", nameof(modFrameworkPath));
+            }
+            
+            InjectRunning(process, modFrameworkPath,modFrameworkPath, args);
+        }
+
         /// <summary>
         /// This method starts the application and injects the given DLL into the target process.<br />
         /// Since this implementation is almost a direct translation call to
@@ -67,12 +77,19 @@ namespace Andraste.Host
                 applicationPath, // executable to run
                 commandLine,                 // command line arguments for target
                 additionalCreateProcessFlags,                  // additional process creation flags to pass to CreateProcess
-                InjectionOptions.DoNotRequireStrongName, // allow injectionLibrary to be unsigned
+                InjectionOptions.DoNotRequireStrongName | InjectionOptions.NoWOW64Bypass, // allow injectionLibrary to be unsigned
                 injectionLibrary32,   // 32-bit library to inject (if target is 32-bit)
                 injectionLibrary64,   // 64-bit library to inject (if target is 64-bit)
                 out targetPid,      // retrieve the newly created process ID
                 args // the parameters to pass into injected library
             );
+        }
+
+        protected virtual void InjectRunning(Process process, string injectionLibrary32, string injectionLibrary64,
+            params object[] args)
+        {
+            RemoteHooking.Inject(process.Id, InjectionOptions.DoNotRequireStrongName | InjectionOptions.NoWOW64Bypass,
+                injectionLibrary32, injectionLibrary64, args);
         }
     }
     #nullable restore

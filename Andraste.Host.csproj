@@ -8,6 +8,9 @@
     <Authors>MeFisto94</Authors>
     <Copyright>Copyright 2023</Copyright>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageProjectUrl>https://andrasteframework.github.io/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/AndrasteFramework/Host</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="EasyHook">
