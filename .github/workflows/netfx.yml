@@ -28,4 +28,8 @@ jobs:
         path: |
           bin\Release\netstandard2.0\Andraste.Host.dll
           bin\Release\netstandard2.0\Andraste.Host.pdb
-          bin\Release\Andraste.Host.*.nupkg
+    - name: Upload NuPkg
+      uses: actions/upload-artifact@v3
+      with:
+        name: NuGet
+        path: bin\Release\Andraste.Host.*.nupkg
