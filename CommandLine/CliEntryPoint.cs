@@ -35,7 +35,7 @@ namespace Andraste.Host.CommandLine
             };
 
             var frameworkDllOption = new Option<string>("--frameworkDll",
-                () => "Andraste.Payload.Generic.dll",
+                GetDefaultFrameworkName,
                 "The name of the framework dll (that has to be in _this_ folder) to use")
             {
                 IsRequired = true
@@ -156,6 +156,11 @@ namespace Andraste.Host.CommandLine
             launchCommand.SetHandler(LaunchGame, nonInteractiveOption, fileOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption, commandLineArgument);
             monitorCommand.SetHandler(MonitorGame, nonInteractiveOption, fileOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption);
             attachCommand.SetHandler(AttachGame, nonInteractiveOption, pidOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption);
+        }
+
+        protected virtual string GetDefaultFrameworkName()
+        {
+            return "Andraste.Payload.Generic.dll";
         }
 
         public void InvokeSync(string commandLine, IConsole? outputConsole)
