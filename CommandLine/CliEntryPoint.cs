@@ -239,7 +239,7 @@ namespace Andraste.Host.CommandLine
 
         }
 
-        protected virtual void PostLaunch(Process? process, string modsJsonFolder, bool nonInteractive)
+        protected virtual void PostLaunch(Process? process, string profileFolder, bool nonInteractive)
         {
             if (nonInteractive)
             {
@@ -258,8 +258,8 @@ namespace Andraste.Host.CommandLine
                 Console.Title = $"Andraste Console Launcher - Attached to PID {process.Id}";
 
                 #region Logging
-                var output = new FileLoggingHost(Path.Combine(modsJsonFolder, "output.log"));
-                var err = new FileLoggingHost(Path.Combine(modsJsonFolder, "error.log"));
+                var output = new FileLoggingHost(Path.Combine(profileFolder, "output.log"));
+                var err = new FileLoggingHost(Path.Combine(profileFolder, "error.log"));
                 output.LoggingEvent += (sender, args) => Console.WriteLine(args.Text);
                 err.LoggingEvent += (sender, args) => Console.Error.WriteLine(args.Text);
                 output.StartListening();
