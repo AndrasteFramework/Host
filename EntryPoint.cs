@@ -80,6 +80,8 @@ namespace Andraste.Host
             var argsArray = new object[args.Length + 1];
             argsArray[0] = profileFolder;
             args.CopyTo(argsArray, 1);
+
+            SetPathToEasyLoad(Directory.GetParent(injectionLibrary32)!.FullName);
             
             // start and inject into a new process
             RemoteHooking.CreateAndInject(
@@ -101,8 +103,20 @@ namespace Andraste.Host
             argsArray[0] = profileFolder;
             args.CopyTo(argsArray, 1);
             
+            SetPathToEasyLoad(Directory.GetParent(injectionLibrary32)!.FullName);
             RemoteHooking.Inject(process.Id, InjectionOptions.DoNotRequireStrongName | InjectionOptions.NoWOW64Bypass,
                 injectionLibrary32, injectionLibrary64, argsArray);
+        }
+
+        /// <summary>
+        /// Sets the path to the folder where EasyLoad32/64.dll resides, because that will be the new AppDomain's
+        /// ApplicationBase, i.e. the folder where it will search for DLLs.
+        /// If we don't change this, it will pick the Host/Launcher path, which is potentially wrong.
+        /// </summary>
+        /// <param name="easyLoadPath">The folder that contains EasyLoad.dll</param>
+        protected virtual void SetPathToEasyLoad(string easyLoadPath)
+        {
+            Config.HelperLibraryLocation = easyLoadPath;
         }
     }
     #nullable restore
