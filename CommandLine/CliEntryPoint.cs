@@ -234,8 +234,9 @@ namespace Andraste.Host.CommandLine
             
             // Build the mods.json
             var modsJson = ModJsonBuilder.WriteModsJson(modsFolder);
-            File.WriteAllBytes(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "mods.json"), modsJson);
-            return Directory.GetParent(modsFolder)!.FullName;
+            var profileFolder = Directory.GetParent(modsFolder)!.FullName;
+            File.WriteAllBytes(Path.Combine(profileFolder, "mods.json"), modsJson);
+            return profileFolder;
 
         }
 
