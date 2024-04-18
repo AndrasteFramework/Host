@@ -197,7 +197,7 @@ namespace Andraste.Host.CommandLine
                 redirectFile = "Andraste.Payload.Generic.dll.config";
             }
 
-            BindingRedirects.CopyRedirects(redirectFile, AppDomain.CurrentDomain.BaseDirectory, Path.GetFileName(applicationPath));
+            BindingRedirects.CopyRedirects(redirectFile, Directory.GetParent(applicationPath)!.FullName, Path.GetFileName(applicationPath));
         }
 
         protected virtual void MonitorGame(bool nonInteractive, string applicationPath, string frameworkDllName,
