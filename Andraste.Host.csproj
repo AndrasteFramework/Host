@@ -6,7 +6,7 @@
     <PackageId>Andraste.Host</PackageId>
     <Version>0.2.2</Version>
     <Authors>MeFisto94</Authors>
-    <Copyright>Copyright 2023-2024</Copyright>
+    <Copyright>Copyright 2023-2024 The AndrasteFramework Team</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://andrasteframework.github.io/</PackageProjectUrl>
