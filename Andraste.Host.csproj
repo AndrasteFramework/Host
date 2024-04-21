@@ -4,7 +4,7 @@
     <TargetFramework>net48</TargetFramework>
     <LangVersion>8.0</LangVersion>
     <PackageId>Andraste.Host</PackageId>
-    <Version>0.2.1</Version>
+    <Version>0.2.2</Version>
     <Authors>MeFisto94</Authors>
     <Copyright>Copyright 2023-2024</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
