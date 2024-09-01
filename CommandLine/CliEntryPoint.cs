@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Andraste.Host.Logging;
+using Andraste.Host.Utils;
 using Andraste.Shared.Util;
 
 #nullable enable
@@ -25,6 +26,9 @@ namespace Andraste.Host.CommandLine
 
         private void BuildSubCommands()
         {
+            var laaOption = new Option<bool>("--set-large-address-aware", () => false,
+                "Patch the executable to have the Large Address Aware flag");
+            
             var nonInteractiveOption = new Option<bool>("--non-interactive", () => false, 
                 "non-interactive mode: Do not redirect logging output. To be used for programmatic launches");
             
@@ -101,6 +105,7 @@ namespace Andraste.Host.CommandLine
                 new Option<string>("--commandLine", "The command line to pass to the application");
             var launchCommand = new Command("launch", "Launch an executable by path")
             {
+                laaOption,
                 fileOption,
                 frameworkDllOption,
                 modsJsonPathOption,
@@ -153,7 +158,7 @@ namespace Andraste.Host.CommandLine
             _rootCommand.AddCommand(attachCommand);
             _rootCommand.AddGlobalOption(nonInteractiveOption);
             
-            launchCommand.SetHandler(LaunchGame, nonInteractiveOption, fileOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption, commandLineArgument);
+            launchCommand.SetHandler(LaunchGame, nonInteractiveOption, fileOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption, commandLineArgument, laaOption);
             monitorCommand.SetHandler(MonitorGame, nonInteractiveOption, fileOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption);
             attachCommand.SetHandler(AttachGame, nonInteractiveOption, pidOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption);
         }
@@ -179,11 +184,19 @@ namespace Andraste.Host.CommandLine
         }
 
         protected virtual void LaunchGame(bool nonInteractive, string applicationPath, string frameworkDllName,
-            string? modsJsonPath, string? modsFolder, string commandLine)
+            string? modsJsonPath, string? modsFolder, string commandLine, bool patchLargeAddressAware)
         {
             var profileFolder = PreLaunch(modsJsonPath, modsFolder);
             // actually, we need the framework folder but with the game name? This fixes binding redirects apparently.
             SetupBindingRedirects(applicationPath, frameworkDllName);
+            if (patchLargeAddressAware)
+            {
+                using (var peStream = File.Open(applicationPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                {
+                    PEUtils.SetLargeAddressAware(peStream).ConfigureAwait(false).GetAwaiter().GetResult();
+                }
+            }
+
             var process = StartApplication(applicationPath, commandLine, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, frameworkDllName), profileFolder);
             PostLaunch(process, profileFolder, nonInteractive);
         }
