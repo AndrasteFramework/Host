@@ -33,9 +33,9 @@ namespace Andraste.Host
             }
         }
 
-        public static void CopyRedirects(string sourceFile, string applicationPath, string applicationFile)
+        public static void CopyRedirects(string sourceFile, string frameworkDllFolder, string applicationFile)
         {
-            File.Copy(sourceFile, Path.Combine(applicationPath, applicationFile + ".config"), true);
+            File.Copy(sourceFile, Path.Combine(frameworkDllFolder, applicationFile + ".config"), true);
         }
         
         // TODO: Merge XML files, but this may be non-trivial due to actual version conflicts, so rather make downstream frameworks supply the right config files.

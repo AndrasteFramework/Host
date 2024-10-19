@@ -184,11 +184,12 @@ namespace Andraste.Host.CommandLine
         }
 
         protected virtual void LaunchGame(bool nonInteractive, string applicationPath, string frameworkDllName,
-            string? modsJsonPath, string? modsFolder, string commandLine, bool patchLargeAddressAware)
+            string? modsJsonPath, string? modsFolder, string commandLine, bool? setLargeAddressAware)
         {
             var profileFolder = PreLaunch(modsJsonPath, modsFolder);
+            var frameworkDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, frameworkDllName);
             // actually, we need the framework folder but with the game name? This fixes binding redirects apparently.
-            SetupBindingRedirects(applicationPath, frameworkDllName);
+            SetupBindingRedirects(applicationPath, frameworkDllPath);
             if (setLargeAddressAware.HasValue)
             {
                 try
@@ -205,27 +206,16 @@ namespace Andraste.Host.CommandLine
                 }
             }
 
-            var process = StartApplication(applicationPath, commandLine, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, frameworkDllName), profileFolder);
+            var process = StartApplication(applicationPath, commandLine, frameworkDllPath, profileFolder);
             PostLaunch(process, profileFolder, nonInteractive);
-        }
-
-        protected virtual void SetupBindingRedirects(string applicationPath, string frameworkDllName)
-        {
-            var redirectFile = frameworkDllName + ".config";
-            if (!File.Exists(redirectFile))
-            {
-                // Fall back to the generic DLL
-                redirectFile = "Andraste.Payload.Generic.dll.config";
-            }
-
-            BindingRedirects.CopyRedirects(redirectFile, Directory.GetParent(applicationPath)!.FullName, Path.GetFileName(applicationPath));
         }
 
         protected virtual void MonitorGame(bool nonInteractive, string applicationPath, string frameworkDllName,
             string? modsJsonPath, string modsFolder)
         {
             PreLaunch(modsJsonPath, modsFolder);
-            SetupBindingRedirects(applicationPath, frameworkDllName);
+            var frameworkDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, frameworkDllName);
+            SetupBindingRedirects(applicationPath, frameworkDllPath);
             // TODO: PostLaunch
             //PostLaunch();
         }
@@ -234,10 +224,24 @@ namespace Andraste.Host.CommandLine
             string? modsJsonPath, string modsFolder)
         {
             var profileFolder = PreLaunch(modsJsonPath, modsFolder);
+            var frameworkDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, frameworkDllName);
             var process = Process.GetProcessById(pid);
             // TODO: Does this MainModule work?
-            SetupBindingRedirects(process.MainModule!.FileName, frameworkDllName);
+            SetupBindingRedirects(process.MainModule!.FileName, frameworkDllPath);
             PostLaunch(process, profileFolder, nonInteractive);
+        }
+        
+        protected virtual void SetupBindingRedirects(string applicationPath, string frameworkDllPath)
+        {
+            var frameworkDllName = Path.GetFileName(frameworkDllPath);
+            var redirectFile = frameworkDllName + ".config";
+            if (!File.Exists(redirectFile))
+            {
+                // Fall back to the generic DLL
+                redirectFile = "Andraste.Payload.Generic.dll.config";
+            }
+
+            BindingRedirects.CopyRedirects(redirectFile, Directory.GetParent(frameworkDllPath)!.FullName, Path.GetFileName(applicationPath));
         }
 
         protected virtual string PreLaunch(string? modsJsonPath, string? modsFolder)
