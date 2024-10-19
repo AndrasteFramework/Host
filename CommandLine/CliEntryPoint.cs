@@ -26,7 +26,7 @@ namespace Andraste.Host.CommandLine
 
         private void BuildSubCommands()
         {
-            var laaOption = new Option<bool>("--set-large-address-aware", () => false,
+            var laaOption = new Option<bool?>("--set-large-address-aware", () => false,
                 "Patch the executable to have the Large Address Aware flag");
             
             var nonInteractiveOption = new Option<bool>("--non-interactive", () => false, 
@@ -189,11 +189,19 @@ namespace Andraste.Host.CommandLine
             var profileFolder = PreLaunch(modsJsonPath, modsFolder);
             // actually, we need the framework folder but with the game name? This fixes binding redirects apparently.
             SetupBindingRedirects(applicationPath, frameworkDllName);
-            if (patchLargeAddressAware)
+            if (setLargeAddressAware.HasValue)
             {
-                using (var peStream = File.Open(applicationPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                try
                 {
-                    PEUtils.SetLargeAddressAware(peStream).ConfigureAwait(false).GetAwaiter().GetResult();
+                    using (var peStream = File.Open(applicationPath, FileMode.Open, FileAccess.ReadWrite,
+                               FileShare.None))
+                    {
+                        new PEUtils(peStream).SetLargeAddressAware(setLargeAddressAware.Value).ConfigureAwait(false).GetAwaiter().GetResult();
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Console.Error.WriteLine($"Exception when trying to open {applicationPath} for writing. UAC problem? {exception}");
                 }
             }
 

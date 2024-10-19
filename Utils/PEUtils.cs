@@ -5,64 +5,86 @@ using System.Threading.Tasks;
 
 namespace Andraste.Host.Utils
 {
-    public static class PEUtils
+    public class PEUtils
     {
-        private const int COFF_HEADER_POINTER = 0x3C;
         private static readonly byte[] PE_MAGIC = { 0x50, 0x45, 0x0, 0x0 };
+        private const int COFF_HEADER_POINTER = 0x3C;
         private const int COFF_OFFSET_MACHINE = 4;
         private const short MACHINE_TYPE_I386 = 0x14C;
         private const int COFF_OFFSET_CHARACTERISTICS = 22;
         public const ushort IMAGE_FILE_LARGE_ADDRESS_AWARE = 0x0020;
+        
+        private int _coffHeaderOffset = -1;
+        private readonly Stream _stream;
 
-        public static async Task<ushort> GetCharacteristics(Stream stream)
+        public PEUtils(Stream stream)
         {
-            await SeekUntilCOFF(stream);
-            stream.Seek(COFF_OFFSET_CHARACTERISTICS, SeekOrigin.Current);            
-            var pos = stream.Position;
-            return BitConverter.ToUInt16(await ReadExactAsync(stream, 2), 0);
-        }
-        
-        public static async Task SetCharacteristics(Stream stream, ushort characteristics)
-        {
-            await SeekUntilCOFF(stream);
-            stream.Seek(COFF_OFFSET_CHARACTERISTICS, SeekOrigin.Current);
-            await stream.WriteAsync(BitConverter.GetBytes(characteristics), 0, 2);
-        }
-        
-        public static async Task<bool> Is32Bit(Stream stream)
-        {
-            await SeekUntilCOFF(stream);
-            stream.Seek(COFF_OFFSET_MACHINE, SeekOrigin.Current);
-            return MACHINE_TYPE_I386 == BitConverter.ToUInt16(await ReadExactAsync(stream, 2), 0);
+            // We need this ugly non-static class so we can cache offsets to reduce useless seeks.
+            _stream = stream;
         }
 
-        public static async Task SetLargeAddressAware(Stream stream)
+        public async Task<ushort> GetCharacteristics()
         {
-            // TODO: with some refactoring, this could prevent some seeking, but then we don't need too much performance here
-            if (!await Is32Bit(stream))
+            await SeekUntilCOFF();
+            _stream.Seek(COFF_OFFSET_CHARACTERISTICS, SeekOrigin.Current);
+            return BitConverter.ToUInt16(await ReadExactAsync(_stream, 2), 0);
+        }
+        
+        public async Task SetCharacteristics(ushort characteristics)
+        {
+            await SeekUntilCOFF();
+            _stream.Seek(COFF_OFFSET_CHARACTERISTICS, SeekOrigin.Current);
+            await _stream.WriteAsync(BitConverter.GetBytes(characteristics), 0, 2);
+        }
+        
+        public async Task<bool> Is32Bit()
+        {
+            await SeekUntilCOFF();
+            _stream.Seek(COFF_OFFSET_MACHINE, SeekOrigin.Current);
+            return MACHINE_TYPE_I386 == BitConverter.ToUInt16(await ReadExactAsync(_stream, 2), 0);
+        }
+
+        public async Task SetLargeAddressAware(bool set)
+        {
+            if (!await Is32Bit())
             {
                 return;
             }
             
-            var characteristics = await GetCharacteristics(stream);
-            characteristics |= IMAGE_FILE_LARGE_ADDRESS_AWARE;
-            await SetCharacteristics(stream, characteristics);
+            var characteristics = await GetCharacteristics();
+            
+            if (set)
+            {
+                characteristics |= IMAGE_FILE_LARGE_ADDRESS_AWARE;
+            }
+            else
+            {
+                characteristics &= unchecked((ushort)~IMAGE_FILE_LARGE_ADDRESS_AWARE);
+            }
+
+            await SetCharacteristics(characteristics);
         }
 
-        private static async Task SeekUntilCOFF(Stream stream, bool validateMagic = true)
+        private async Task SeekUntilCOFF(bool validateMagic = true)
         {
-            stream.Seek(COFF_HEADER_POINTER, SeekOrigin.Begin);
-            var offset = BitConverter.ToInt32(await ReadExactAsync(stream, 4), 0);
-            stream.Seek(offset, SeekOrigin.Begin);
+            if (_coffHeaderOffset != -1)
+            {
+                _stream.Seek(_coffHeaderOffset, SeekOrigin.Begin);
+                return;
+            }
+            
+            _stream.Seek(COFF_HEADER_POINTER, SeekOrigin.Begin);
+            _coffHeaderOffset = BitConverter.ToInt32(await ReadExactAsync(_stream, 4), 0);
+            _stream.Seek(_coffHeaderOffset, SeekOrigin.Begin);
 
             if (validateMagic)
             {
-                var magic = await ReadExactAsync(stream, 4);
+                var magic = await ReadExactAsync(_stream, 4);
                 if (!magic.SequenceEqual(PE_MAGIC))
                 {
                     throw new InvalidDataException("Not a valid PE file");
                 }
-                stream.Seek(offset, SeekOrigin.Begin);
+                _stream.Seek(_coffHeaderOffset, SeekOrigin.Begin);
             }
         }
         
