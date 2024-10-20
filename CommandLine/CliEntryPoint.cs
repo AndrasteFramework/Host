@@ -5,6 +5,7 @@ using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Andraste.Host.Logging;
 using Andraste.Host.Utils;
@@ -115,9 +116,12 @@ namespace Andraste.Host.CommandLine
             launchCommand.AddValidator(modsValidator);
             launchCommand.AddValidator(validateFilesExist);
 
-            var monitorCommand = new Command("monitor", "Monitor an executable by path and auto-attach")
+
+            var processNameOption = new Argument<string>("processName", "The process name to monitor for");
+
+            var monitorCommand = new Command("monitor", "Monitor an executable by executable name and auto-attach")
             {
-                fileOption,
+                processNameOption,
                 frameworkDllOption,
                 modsJsonPathOption,
                 modsFolderPathOption
@@ -159,7 +163,7 @@ namespace Andraste.Host.CommandLine
             _rootCommand.AddGlobalOption(nonInteractiveOption);
             
             launchCommand.SetHandler(LaunchGame, nonInteractiveOption, fileOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption, commandLineArgument, laaOption);
-            monitorCommand.SetHandler(MonitorGame, nonInteractiveOption, fileOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption);
+            monitorCommand.SetHandler(MonitorGame, nonInteractiveOption, processNameOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption);
             attachCommand.SetHandler(AttachGame, nonInteractiveOption, pidOption, frameworkDllOption, modsJsonPathOption, modsFolderPathOption);
         }
 
@@ -210,38 +214,63 @@ namespace Andraste.Host.CommandLine
             PostLaunch(process, profileFolder, nonInteractive);
         }
 
-        protected virtual void MonitorGame(bool nonInteractive, string applicationPath, string frameworkDllName,
-            string? modsJsonPath, string modsFolder)
-        {
-            PreLaunch(modsJsonPath, modsFolder);
-            var frameworkDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, frameworkDllName);
-            SetupBindingRedirects(applicationPath, frameworkDllPath);
-            // TODO: PostLaunch
-            //PostLaunch();
-        }
-
-        protected virtual void AttachGame(bool nonInteractive, int pid, string frameworkDllName,
+        protected virtual void MonitorGame(bool nonInteractive, string processName, string frameworkDllName,
             string? modsJsonPath, string modsFolder)
         {
             var profileFolder = PreLaunch(modsJsonPath, modsFolder);
             var frameworkDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, frameworkDllName);
+
+            if (processName.EndsWith(".exe"))
+            {
+                processName = processName.Substring(0, processName.Length - ".exe".Length);
+            }
+
+            var processes = Process.GetProcessesByName(processName);
+            while (processes.Length == 0)
+            {
+                Thread.Sleep(100);
+                processes = Process.GetProcessesByName(processName);
+            }
+
+            if (processes.Length > 1)
+            {
+                Console.Error.WriteLine($"Found multiple processes for \"{processName}\". May pick the wrong one");
+            }
+            
+            InternalAttach(processes[0], nonInteractive, frameworkDllPath, profileFolder);
+        }
+
+        protected virtual void AttachGame(bool nonInteractive, int pid, string frameworkDllName, string? modsJsonPath,
+            string modsFolder)
+        {
+            var profileFolder = PreLaunch(modsJsonPath, modsFolder);
+            var frameworkDllPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, frameworkDllName);
             var process = Process.GetProcessById(pid);
-            // TODO: Does this MainModule work?
+            InternalAttach(process, nonInteractive, frameworkDllPath, profileFolder);
+        }
+
+        private void InternalAttach(Process process, bool nonInteractive, string frameworkDllPath, string profileFolder)
+        {
+            Console.WriteLine($"Attaching to PID {process.Id}");
             SetupBindingRedirects(process.MainModule!.FileName, frameworkDllPath);
+            AttachToApplication(process, frameworkDllPath, profileFolder);
             PostLaunch(process, profileFolder, nonInteractive);
         }
-        
+
         protected virtual void SetupBindingRedirects(string applicationPath, string frameworkDllPath)
         {
-            var frameworkDllName = Path.GetFileName(frameworkDllPath);
-            var redirectFile = frameworkDllName + ".config";
+            var frameworkDllFolder = Directory.GetParent(frameworkDllPath)!.FullName;
+            var redirectFile = Path.Combine(frameworkDllFolder, Path.GetFileName(frameworkDllPath) + ".config");
             if (!File.Exists(redirectFile))
             {
                 // Fall back to the generic DLL
-                redirectFile = "Andraste.Payload.Generic.dll.config";
+                redirectFile = Path.Combine(frameworkDllFolder, "Andraste.Payload.Generic.dll.config");
             }
-
-            BindingRedirects.CopyRedirects(redirectFile, Directory.GetParent(frameworkDllPath)!.FullName, Path.GetFileName(applicationPath));
+            
+            // Starting the game via Andraste.Launcher -> binding needs to be in the framework folder
+            BindingRedirects.CopyRedirects(redirectFile, frameworkDllFolder, Path.GetFileName(applicationPath));
+            // Starting the game by attaching -> binding needs to be in the game folder
+            BindingRedirects.CopyRedirects(redirectFile, Directory.GetParent(applicationPath)!.FullName, Path.GetFileName(applicationPath));
         }
 
         protected virtual string PreLaunch(string? modsJsonPath, string? modsFolder)
