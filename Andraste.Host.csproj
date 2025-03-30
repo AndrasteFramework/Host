@@ -4,9 +4,9 @@
     <TargetFramework>net48</TargetFramework>
     <LangVersion>8.0</LangVersion>
     <PackageId>Andraste.Host</PackageId>
-    <Version>0.2.2</Version>
+    <Version>0.3.0</Version>
     <Authors>MeFisto94</Authors>
-    <Copyright>Copyright 2023-2024 The AndrasteFramework Team</Copyright>
+    <Copyright>Copyright 2023-2025 The AndrasteFramework Team</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageProjectUrl>https://andrasteframework.github.io/</PackageProjectUrl>
@@ -15,7 +15,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Andraste.EasyHook" Version="1.0.2" />
-    <PackageReference Include="Andraste.Shared" Version="0.2.2" />
+    <PackageReference Include="Andraste.Shared" Version="0.3.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
   </ItemGroup>
 </Project>
